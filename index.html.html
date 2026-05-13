@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>TRAS-A | Protótipo Experimental</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#f3f5f7;
+  color:#1f2937;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+
+.container{
+  width:min(1000px,96vw);
+  background:white;
+  border-radius:22px;
+  padding:32px;
+  box-shadow:0 10px 35px rgba(0,0,0,0.08);
+}
+
+h1{
+  margin-top:0;
+}
+
+h2{
+  margin-top:0;
+}
+
+.hidden{
+  display:none;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px;
+  margin-top:24px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+}
+
+label{
+  margin-bottom:6px;
+  font-size:0.92rem;
+  font-weight:bold;
+}
+
+input, select, textarea{
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #d1d5db;
+  font-size:1rem;
+}
+
+textarea{
+  min-height:100px;
+  resize:vertical;
+}
+
+button{
+  border:none;
+  border-radius:999px;
+  padding:14px 24px;
+  background:#111827;
+  color:white;
+  cursor:pointer;
+  font-size:1rem;
+  margin-top:24px;
+}
+
+.secondary{
+  background:#e5e7eb;
+  color:#111827;
+}
+
+.warning{
+  margin-top:20px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  padding:16px;
+  border-radius:14px;
+  color:#7c2d12;
+  line-height:1.5;
+}
+
+.target{
+  display:inline-block;
+  padding:6px 16px;
+  background:#111827;
+  color:white;
+  border-radius:12px;
+  font-size:1.5rem;
+  margin:0 4px;
+}
+
+#stimulus{
+  height:260px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:7rem;
+  font-weight:bold;
+  border-radius:24px;
+  background:#f9fafb;
+  border:2px solid #e5e7eb;
+  margin:24px 0;
+  user-select:none;
+}
+
+.status-bar{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.card{
+  flex:1;
+  min-width:160px;
+  background:#f9fafb;
+  border-radius:16px;
+  padding:14px;
+  border:1px solid #e5e7eb;
+}
+
+.label{
+  font-size:0.82rem;
+  color:#6b7280;
+  margin-bottom:6px;
+}
+
+.value{
+  font-size:1.3rem;
+  font-weight:bold;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:24px;
+}
+
+th, td{
+  border-bottom:1px solid #e5e7eb;
+  padding:12px;
+  text-align:left;
+}
+
+th{
+  background:#f9fafb;
+}
+
+.note{
+  margin-top:18px;
+  color:#6b7280;
+  font-size:0.9rem;
+}
+
+.report-section{
+  margin-top:32px;
+}
+
+@media print{
+
+  body{
+    background:white;
+    padding:0;
+  }
+
+  .no-print{
+    display:none;
+  }
+
+  .container{
+    box-shadow:none;
+    border-radius:0;
+    width:100%;
+    padding:0;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<main class="container">
+
+<!-- IDENTIFICAÇÃO -->
+
+<section id="screen-form">
+
+<h1>TRAS-A</h1>
+
+<h2>Protótipo Experimental de Vigilância Sustentada</h2>
+
+<p>
+Responda para TODOS os símbolos EXCETO:
+<span class="target">★</span>
+</p>
+
+<div class="warning">
+<strong>Aviso:</strong>
+Este sistema é um protótipo experimental em desenvolvimento.
+Não possui validade diagnóstica e não deve ser utilizado para fins clínicos.
+</div>
+
+<div class="form-grid">
+
+<div class="field">
+<label>Nome completo</label>
+<input type="text" id="name" />
+</div>
+
+<div class="field">
+<label>Data de nascimento</label>
+<input type="date" id="birthdate" />
+</div>
+
+<div class="field">
+<label>Escolaridade</label>
+<input type="text" id="education" />
+</div>
+
+<div class="field">
+<label>Sexo/Gênero</label>
+<select id="gender">
+<option value="">Selecionar</option>
+<option>Feminino</option>
+<option>Masculino</option>
+<option>Outro</option>
+<option>Prefere não informar</option>
+</select>
+</div>
+
+<div class="field">
+<label>Nome do avaliador</label>
+<input type="text" id="examiner" />
+</div>
+
+<div class="field">
+<label>Data da avaliação</label>
+<input type="date" id="assessment-date" />
+</div>
+
+<div class="field">
+<label>Dominância manual</label>
+<select id="handedness">
+<option value="">Selecionar</option>
+<option>Destro</option>
+<option>Canhoto</option>
+<option>Ambidestro</option>
+</select>
+</div>
+
+<div class="field">
+<label>Qualidade do sono</label>
+<select id="sleep">
+<option value="">Selecionar</option>
+<option>Boa</option>
+<option>Regular</option>
+<option>Ruim</option>
+</select>
+</div>
+
+</div>
+
+<div class="field" style="margin-top:20px;">
+<label>Observações do avaliador</label>
+<textarea id="observations"></textarea>
+</div>
+
+<button onclick="startTest()">
+Iniciar teste
+</button>
+
+</section>
+
+<!-- TESTE -->
+
+<section id="screen-test" class="hidden">
+
+<h2>Responda para TODOS os símbolos EXCETO ★</h2>
+
+<div id="stimulus">+</div>
+
+<div class="status-bar">
+
+<div class="card">
+<div class="label">Tempo restante</div>
+<div class="value" id="time-left">05:00</div>
+</div>
+
+<div class="card">
+<div class="label">Tentativa</div>
+<div class="value" id="trial-count">0</div>
+</div>
+
+<div class="card">
+<div class="label">Feedback</div>
+<div class="value" id="feedback">—</div>
+</div>
+
+</div>
+
+<p class="note">
+Mantenha atenção constante durante toda a tarefa.
+</p>
+
+</section>
+
+<!-- RESULTADOS -->
+
+<section id="screen-results" class="hidden">
+
+<h1>Relatório TRAS-A</h1>
+
+<div class="report-section">
+
+<h2>Dados do Avaliando</h2>
+
+<table>
+<tbody>
+
+<tr>
+<th>Nome</th>
+<td id="report-name"></td>
+</tr>
+
+<tr>
+<th>Data de nascimento</th>
+<td id="report-birthdate"></td>
+</tr>
+
+<tr>
+<th>Idade</th>
+<td id="report-age"></td>
+</tr>
+
+<tr>
+<th>Escolaridade</th>
+<td id="report-education"></td>
+</tr>
+
+<tr>
+<th>Sexo/Gênero</th>
+<td id="report-gender"></td>
+</tr>
+
+<tr>
+<th>Avaliador</th>
+<td id="report-examiner"></td>
+</tr>
+
+<tr>
+<th>Data da avaliação</th>
+<td id="report-date"></td>
+</tr>
+
+<tr>
+<th>Dominância manual</th>
+<td id="report-hand"></td>
+</tr>
+
+<tr>
+<th>Qualidade do sono</th>
+<td id="report-sleep"></td>
+</tr>
+
+</tbody>
+</table>
+
+</div>
+
+<div class="report-section">
+
+<h2>Indicadores Cognitivos</h2>
+
+<table>
+<tbody>
+
+<tr>
+<th>Acertos</th>
+<td id="result-hits"></td>
+</tr>
+
+<tr>
+<th>Omissões</th>
+<td id="result-omissions"></td>
+</tr>
+
+<tr>
+<th>Comissões</th>
+<td id="result-commissions"></td>
+</tr>
+
+<tr>
+<th>Tempo médio de reação</th>
+<td id="result-rt"></td>
+</tr>
+
+<tr>
+<th>Desvio-padrão do TR</th>
+<td id="result-sd"></td>
+</tr>
+
+<tr>
+<th>Coeficiente de variação</th>
+<td id="result-cv"></td>
+</tr>
+
+<tr>
+<th>Queda de desempenho</th>
+<td id="result-drop"></td>
+</tr>
+
+</tbody>
+</table>
+
+</div>
+
+<div class="report-section">
+
+<h2>Desempenho por Bloco</h2>
+
+<table>
+<thead>
+
+<tr>
+<th>Bloco</th>
+<th>Acertos</th>
+<th>Omissões</th>
+<th>Comissões</th>
+<th>TR Médio</th>
+</tr>
+
+</thead>
+
+<tbody id="block-table"></tbody>
+
+</table>
+
+</div>
+
+<div class="report-section">
+
+<h2>Observações do Avaliador</h2>
+
+<p id="report-observations"></p>
+
+</div>
+
+<div class="warning">
+
+<strong>Importante:</strong>
+
+Este relatório pertence a um protótipo experimental em desenvolvimento.
+Não possui normas, pontos de corte ou validade diagnóstica estabelecida.
+Não deve ser utilizado isoladamente para diagnóstico, laudo psicológico ou tomada de decisão clínica.
+
+</div>
+
+<div class="report-section">
+
+<p style="margin-top:60px;">
+_____________________________________
+<br>
+Assinatura do avaliador
+</p>
+
+</div>
+
+<div class="no-print">
+
+<button onclick="window.print()">
+Imprimir / Salvar em PDF
+</button>
+
+<button class="secondary" onclick="downloadCSV()">
+Baixar CSV
+</button>
+
+<button class="secondary" onclick="location.reload()">
+Reiniciar
+</button>
+
+</div>
+
+</section>
+
+</main>
+
+<script>
+
+const TEST_DURATION_MS = 5 * 60 * 1000;
+
+const TARGET_SYMBOL = "★";
+
+const SYMBOLS = [
+"○","△","□","◇","✚","●","▲","■","◆","✖"
+];
+
+const TARGET_PROBABILITY = 0.15;
+
+const MIN_INTERVAL = 800;
+const MAX_INTERVAL = 1400;
+
+let trials = [];
+
+let currentStimulus = null;
+let currentIsTarget = false;
+let currentStimulusTime = null;
+
+let testStarted = false;
+let testEnded = false;
+
+let trialNumber = 0;
+
+let startTime = null;
+
+let respondedThisTrial = false;
+
+let timeoutHandle = null;
+
+let countdownInterval = null;
+
+function startTest(){
+
+document.getElementById("screen-form").classList.add("hidden");
+
+document.getElementById("screen-test").classList.remove("hidden");
+
+testStarted = true;
+
+startTime = performance.now();
+
+updateCountdown();
+
+countdownInterval = setInterval(updateCountdown,200);
+
+runNextTrial();
+
+setTimeout(endTest,TEST_DURATION_MS);
+
+}
+
+function runNextTrial(){
+
+if(testEnded) return;
+
+if(trialNumber > 0){
+
+const previous = trials[trials.length - 1];
+
+if(!previous.responded && !previous.is_target){
+previous.result = "omission";
+}
+
+}
+
+respondedThisTrial = false;
+
+trialNumber++;
+
+currentIsTarget = Math.random() < TARGET_PROBABILITY;
+
+currentStimulus = currentIsTarget
+? TARGET_SYMBOL
+: SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
+
+currentStimulusTime = performance.now();
+
+const elapsed = currentStimulusTime - startTime;
+
+const block = Math.floor(elapsed / 30000) + 1;
+
+trials.push({
+trial:trialNumber,
+block,
+stimulus:currentStimulus,
+is_target:currentIsTarget,
+responded:false,
+reaction_time:null,
+result:currentIsTarget ? "correct_rejection" : "pending"
+});
+
+document.getElementById("stimulus").textContent = currentStimulus;
+
+document.getElementById("trial-count").textContent = trialNumber;
+
+document.getElementById("feedback").textContent = "—";
+
+const nextInterval =
+Math.floor(Math.random() * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
+
+timeoutHandle = setTimeout(runNextTrial,nextInterval);
+
+}
+
+document.addEventListener("keydown",function(event){
+
+if(!testStarted || testEnded) return;
+
+if(event.code !== "Space") return;
+
+event.preventDefault();
+
+if(respondedThisTrial) return;
+
+respondedThisTrial = true;
+
+const rt = Math.round(performance.now() - currentStimulusTime);
+
+const currentTrial = trials[trials.length - 1];
+
+currentTrial.responded = true;
+
+currentTrial.reaction_time = rt;
+
+if(currentIsTarget){
+
+currentTrial.result = "commission";
+
+document.getElementById("feedback").textContent = "Erro";
+
+}else{
+
+currentTrial.result = "hit";
+
+document.getElementById("feedback").textContent = "Correto";
+
+}
+
+});
+
+function updateCountdown(){
+
+const elapsed = performance.now() - startTime;
+
+const remaining = Math.max(0,TEST_DURATION_MS - elapsed);
+
+const totalSeconds = Math.ceil(remaining / 1000);
+
+const min = String(Math.floor(totalSeconds / 60)).padStart(2,"0");
+
+const sec = String(totalSeconds % 60).padStart(2,"0");
+
+document.getElementById("time-left").textContent = `${min}:${sec}`;
+
+}
+
+function endTest(){
+
+testEnded = true;
+
+testStarted = false;
+
+clearTimeout(timeoutHandle);
+
+clearInterval(countdownInterval);
+
+document.getElementById("screen-test").classList.add("hidden");
+
+document.getElementById("screen-results").classList.remove("hidden");
+
+calculateResults();
+
+fillParticipantData();
+
+}
+
+function calculateResults(){
+
+const hits = trials.filter(t => t.result === "hit");
+
+const omissions = trials.filter(t => t.result === "omission");
+
+const commissions = trials.filter(t => t.result === "commission");
+
+const rts =
+hits.map(t => t.reaction_time).filter(v => typeof v === "number");
+
+const meanRT =
+rts.length
+? Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)
+: 0;
+
+const sd = calculateSD(rts);
+
+const cv =
+meanRT > 0
+? ((sd / meanRT) * 100).toFixed(2)
+: 0;
+
+const firstBlock =
+trials.filter(t => t.block === 1 && t.result === "hit").length;
+
+const lastBlock =
+trials.filter(t => t.block === 10 && t.result === "hit").length;
+
+const drop =
+firstBlock > 0
+? Math.round(((firstBlock - lastBlock)/firstBlock)*100)
+: 0;
+
+document.getElementById("result-hits").textContent = hits.length;
+
+document.getElementById("result-omissions").textContent = omissions.length;
+
+document.getElementById("result-commissions").textContent = commissions.length;
+
+document.getElementById("result-rt").textContent = `${meanRT} ms`;
+
+document.getElementById("result-sd").textContent = `${sd} ms`;
+
+document.getElementById("result-cv").textContent = `${cv}%`;
+
+document.getElementById("result-drop").textContent = `${drop}%`;
+
+generateBlockTable();
+
+}
+
+function generateBlockTable(){
+
+const tbody = document.getElementById("block-table");
+
+tbody.innerHTML = "";
+
+for(let block = 1; block <= 10; block++){
+
+const data = trials.filter(t => t.block === block);
+
+const hits = data.filter(t => t.result === "hit");
+
+const omissions = data.filter(t => t.result === "omission");
+
+const commissions = data.filter(t => t.result === "commission");
+
+const rts = hits.map(t => t.reaction_time);
+
+const mean =
+rts.length
+? Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)
+: "-";
+
+const tr = document.createElement("tr");
+
+tr.innerHTML = `
+<td>${block}</td>
+<td>${hits.length}</td>
+<td>${omissions.length}</td>
+<td>${commissions.length}</td>
+<td>${mean}</td>
+`;
+
+tbody.appendChild(tr);
+
+}
+
+}
+
+function calculateSD(values){
+
+if(!values.length) return 0;
+
+const mean =
+values.reduce((a,b)=>a+b,0)/values.length;
+
+const variance =
+values.reduce((sum,val)=>
+sum + Math.pow(val - mean,2),0
+)/values.length;
+
+return Math.round(Math.sqrt(variance));
+
+}
+
+function fillParticipantData(){
+
+const birthdate =
+document.getElementById("birthdate").value;
+
+let age = "";
+
+if(birthdate){
+
+const birth = new Date(birthdate);
+
+const today = new Date();
+
+age = today.getFullYear() - birth.getFullYear();
+
+const m = today.getMonth() - birth.getMonth();
+
+if(m < 0 || (m === 0 && today.getDate() < birth.getDate())){
+age--;
+}
+
+}
+
+document.getElementById("report-name").textContent =
+document.getElementById("name").value;
+
+document.getElementById("report-birthdate").textContent =
+birthdate;
+
+document.getElementById("report-age").textContent =
+age;
+
+document.getElementById("report-education").textContent =
+document.getElementById("education").value;
+
+document.getElementById("report-gender").textContent =
+document.getElementById("gender").value;
+
+document.getElementById("report-examiner").textContent =
+document.getElementById("examiner").value;
+
+document.getElementById("report-date").textContent =
+document.getElementById("assessment-date").value;
+
+document.getElementById("report-hand").textContent =
+document.getElementById("handedness").value;
+
+document.getElementById("report-sleep").textContent =
+document.getElementById("sleep").value;
+
+document.getElementById("report-observations").textContent =
+document.getElementById("observations").value;
+
+}
+
+function downloadCSV(){
+
+const header = [
+"trial",
+"block",
+"stimulus",
+"is_target",
+"responded",
+"reaction_time",
+"result"
+];
+
+const rows = trials.map(t => [
+t.trial,
+t.block,
+t.stimulus,
+t.is_target,
+t.responded,
+t.reaction_time,
+t.result
+]);
+
+const csv =
+[header,...rows]
+.map(r=>r.join(","))
+.join("\n");
+
+const blob =
+new Blob([csv],{
+type:"text/csv;charset=utf-8;"
+});
+
+const url = URL.createObjectURL(blob);
+
+const link = document.createElement("a");
+
+link.href = url;
+
+link.download = "tras-a-dados.csv";
+
+document.body.appendChild(link);
+
+link.click();
+
+document.body.removeChild(link);
+
+}
+
+</script>
+
+</body>
+</html>
