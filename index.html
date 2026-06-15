@@ -508,394 +508,347 @@ Reiniciar
 </main>
 
 <script>
-
 const TEST_DURATION_MS = 5 * 60 * 1000;
-
 const TARGET_SYMBOL = "★";
-
-const SYMBOLS = [
-"○","△","□","◇","✚","●","▲","■","◆","✖"
-];
-
+const SYMBOLS = ["○","△","□","◇","✚","●","▲","■","◆","✖"];
 const TARGET_PROBABILITY = 0.15;
-
 const MIN_INTERVAL = 800;
 const MAX_INTERVAL = 1400;
+const MIN_VALID_RT = 150;
+const MAX_VALID_RT = 2000;
 
 let trials = [];
-
 let currentStimulus = null;
 let currentIsTarget = false;
 let currentStimulusTime = null;
 
 let testStarted = false;
 let testEnded = false;
-
 let trialNumber = 0;
-
 let startTime = null;
-
 let respondedThisTrial = false;
 
 let timeoutHandle = null;
-
 let countdownInterval = null;
 
+let visibilityLosses = 0;
+let totalHiddenTime = 0;
+let hiddenStartTime = null;
+
+document.addEventListener("visibilitychange", () => {
+  if (!testStarted || testEnded) return;
+
+  if (document.hidden) {
+    visibilityLosses++;
+    hiddenStartTime = performance.now();
+  } else if (hiddenStartTime !== null) {
+    totalHiddenTime += performance.now() - hiddenStartTime;
+    hiddenStartTime = null;
+  }
+});
+
 function startTest(){
+  document.getElementById("screen-form").classList.add("hidden");
+  document.getElementById("screen-test").classList.remove("hidden");
 
-document.getElementById("screen-form").classList.add("hidden");
+  testStarted = true;
+  testEnded = false;
+  startTime = performance.now();
 
-document.getElementById("screen-test").classList.remove("hidden");
+  updateCountdown();
+  countdownInterval = setInterval(updateCountdown, 200);
 
-testStarted = true;
-
-startTime = performance.now();
-
-updateCountdown();
-
-countdownInterval = setInterval(updateCountdown,200);
-
-runNextTrial();
-
-setTimeout(endTest,TEST_DURATION_MS);
-
+  runNextTrial();
+  setTimeout(endTest, TEST_DURATION_MS);
 }
 
 function runNextTrial(){
+  if(testEnded) return;
 
-if(testEnded) return;
+  if(trialNumber > 0){
+    const previous = trials[trials.length - 1];
 
-if(trialNumber > 0){
+    if(!previous.responded && !previous.is_target){
+      previous.result = "omission";
+    }
+  }
 
-const previous = trials[trials.length - 1];
+  respondedThisTrial = false;
+  currentStimulusTime = null;
+  trialNumber++;
 
-if(!previous.responded && !previous.is_target){
-previous.result = "omission";
+  currentIsTarget = Math.random() < TARGET_PROBABILITY;
+
+  currentStimulus = currentIsTarget
+    ? TARGET_SYMBOL
+    : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+
+  const elapsed = performance.now() - startTime;
+  const block = Math.floor(elapsed / 30000) + 1;
+
+  trials.push({
+    trial: trialNumber,
+    block,
+    stimulus: currentStimulus,
+    is_target: currentIsTarget,
+    responded: false,
+    reaction_time: null,
+    valid_rt: false,
+    result: currentIsTarget ? "correct_rejection" : "pending"
+  });
+
+  document.getElementById("stimulus").textContent = currentStimulus;
+
+  requestAnimationFrame(() => {
+    currentStimulusTime = performance.now();
+  });
+
+  document.getElementById("trial-count").textContent = trialNumber;
+  document.getElementById("feedback").textContent = "—";
+
+  const nextInterval =
+    Math.floor(Math.random() * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
+
+  timeoutHandle = setTimeout(runNextTrial, nextInterval);
 }
 
-}
+document.addEventListener("keydown", function(event){
+  if(!testStarted || testEnded) return;
+  if(event.code !== "Space") return;
 
-respondedThisTrial = false;
+  event.preventDefault();
 
-trialNumber++;
+  if(respondedThisTrial) return;
+  if(currentStimulusTime === null) return;
 
-currentIsTarget = Math.random() < TARGET_PROBABILITY;
+  respondedThisTrial = true;
 
-currentStimulus = currentIsTarget
-? TARGET_SYMBOL
-: SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
+  const rt = Math.round(performance.now() - currentStimulusTime);
+  const currentTrial = trials[trials.length - 1];
 
-currentStimulusTime = performance.now();
+  currentTrial.responded = true;
+  currentTrial.reaction_time = rt;
 
-const elapsed = currentStimulusTime - startTime;
+  if(rt < MIN_VALID_RT || rt > MAX_VALID_RT){
+    currentTrial.valid_rt = false;
+    currentTrial.result = "invalid_rt";
+    document.getElementById("feedback").textContent = "Inválido";
+    return;
+  }
 
-const block = Math.floor(elapsed / 30000) + 1;
+  currentTrial.valid_rt = true;
 
-trials.push({
-trial:trialNumber,
-block,
-stimulus:currentStimulus,
-is_target:currentIsTarget,
-responded:false,
-reaction_time:null,
-result:currentIsTarget ? "correct_rejection" : "pending"
-});
-
-document.getElementById("stimulus").textContent = currentStimulus;
-
-document.getElementById("trial-count").textContent = trialNumber;
-
-document.getElementById("feedback").textContent = "—";
-
-const nextInterval =
-Math.floor(Math.random() * (MAX_INTERVAL - MIN_INTERVAL)) + MIN_INTERVAL;
-
-timeoutHandle = setTimeout(runNextTrial,nextInterval);
-
-}
-
-document.addEventListener("keydown",function(event){
-
-if(!testStarted || testEnded) return;
-
-if(event.code !== "Space") return;
-
-event.preventDefault();
-
-if(respondedThisTrial) return;
-
-respondedThisTrial = true;
-
-const rt = Math.round(performance.now() - currentStimulusTime);
-
-const currentTrial = trials[trials.length - 1];
-
-currentTrial.responded = true;
-
-currentTrial.reaction_time = rt;
-
-if(currentIsTarget){
-
-currentTrial.result = "commission";
-
-document.getElementById("feedback").textContent = "Erro";
-
-}else{
-
-currentTrial.result = "hit";
-
-document.getElementById("feedback").textContent = "Correto";
-
-}
-
+  if(currentIsTarget){
+    currentTrial.result = "commission";
+    document.getElementById("feedback").textContent = "Erro";
+  }else{
+    currentTrial.result = "hit";
+    document.getElementById("feedback").textContent = "Correto";
+  }
 });
 
 function updateCountdown(){
+  const elapsed = performance.now() - startTime;
+  const remaining = Math.max(0, TEST_DURATION_MS - elapsed);
 
-const elapsed = performance.now() - startTime;
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const min = String(Math.floor(totalSeconds / 60)).padStart(2,"0");
+  const sec = String(totalSeconds % 60).padStart(2,"0");
 
-const remaining = Math.max(0,TEST_DURATION_MS - elapsed);
-
-const totalSeconds = Math.ceil(remaining / 1000);
-
-const min = String(Math.floor(totalSeconds / 60)).padStart(2,"0");
-
-const sec = String(totalSeconds % 60).padStart(2,"0");
-
-document.getElementById("time-left").textContent = `${min}:${sec}`;
-
+  document.getElementById("time-left").textContent = `${min}:${sec}`;
 }
 
 function endTest(){
+  testEnded = true;
+  testStarted = false;
 
-testEnded = true;
+  if(hiddenStartTime !== null){
+    totalHiddenTime += performance.now() - hiddenStartTime;
+    hiddenStartTime = null;
+  }
 
-testStarted = false;
+  clearTimeout(timeoutHandle);
+  clearInterval(countdownInterval);
 
-clearTimeout(timeoutHandle);
+  document.getElementById("screen-test").classList.add("hidden");
+  document.getElementById("screen-results").classList.remove("hidden");
 
-clearInterval(countdownInterval);
-
-document.getElementById("screen-test").classList.add("hidden");
-
-document.getElementById("screen-results").classList.remove("hidden");
-
-calculateResults();
-
-fillParticipantData();
-
+  calculateResults();
+  fillParticipantData();
 }
 
 function calculateResults(){
+  const hits = trials.filter(t => t.result === "hit");
+  const omissions = trials.filter(t => t.result === "omission");
+  const commissions = trials.filter(t => t.result === "commission");
 
-const hits = trials.filter(t => t.result === "hit");
+  const rts = hits
+    .map(t => t.reaction_time)
+    .filter(v => typeof v === "number");
 
-const omissions = trials.filter(t => t.result === "omission");
+  const meanRT = rts.length
+    ? Math.round(rts.reduce((a,b)=>a+b,0) / rts.length)
+    : 0;
 
-const commissions = trials.filter(t => t.result === "commission");
+  const sd = calculateSD(rts);
 
-const rts =
-hits.map(t => t.reaction_time).filter(v => typeof v === "number");
+  const cv = meanRT > 0
+    ? ((sd / meanRT) * 100).toFixed(2)
+    : 0;
 
-const meanRT =
-rts.length
-? Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)
-: 0;
+  const firstBlock = trials.filter(t => t.block === 1 && t.result === "hit").length;
+  const lastBlock = trials.filter(t => t.block === 10 && t.result === "hit").length;
 
-const sd = calculateSD(rts);
+  const drop = firstBlock > 0
+    ? Math.round(((firstBlock - lastBlock) / firstBlock) * 100)
+    : 0;
 
-const cv =
-meanRT > 0
-? ((sd / meanRT) * 100).toFixed(2)
-: 0;
+  document.getElementById("result-hits").textContent = hits.length;
+  document.getElementById("result-omissions").textContent = omissions.length;
+  document.getElementById("result-commissions").textContent = commissions.length;
+  document.getElementById("result-rt").textContent = `${meanRT} ms`;
+  document.getElementById("result-sd").textContent = `${sd} ms`;
+  document.getElementById("result-cv").textContent = `${cv}%`;
+  document.getElementById("result-drop").textContent = `${drop}%`;
 
-const firstBlock =
-trials.filter(t => t.block === 1 && t.result === "hit").length;
-
-const lastBlock =
-trials.filter(t => t.block === 10 && t.result === "hit").length;
-
-const drop =
-firstBlock > 0
-? Math.round(((firstBlock - lastBlock)/firstBlock)*100)
-: 0;
-
-document.getElementById("result-hits").textContent = hits.length;
-
-document.getElementById("result-omissions").textContent = omissions.length;
-
-document.getElementById("result-commissions").textContent = commissions.length;
-
-document.getElementById("result-rt").textContent = `${meanRT} ms`;
-
-document.getElementById("result-sd").textContent = `${sd} ms`;
-
-document.getElementById("result-cv").textContent = `${cv}%`;
-
-document.getElementById("result-drop").textContent = `${drop}%`;
-
-generateBlockTable();
-
+  generateBlockTable();
 }
 
 function generateBlockTable(){
+  const tbody = document.getElementById("block-table");
+  tbody.innerHTML = "";
 
-const tbody = document.getElementById("block-table");
+  for(let block = 1; block <= 10; block++){
+    const data = trials.filter(t => t.block === block);
+    const hits = data.filter(t => t.result === "hit");
+    const omissions = data.filter(t => t.result === "omission");
+    const commissions = data.filter(t => t.result === "commission");
 
-tbody.innerHTML = "";
+    const rts = hits
+      .map(t => t.reaction_time)
+      .filter(v => typeof v === "number");
 
-for(let block = 1; block <= 10; block++){
+    const mean = rts.length
+      ? Math.round(rts.reduce((a,b)=>a+b,0) / rts.length)
+      : "-";
 
-const data = trials.filter(t => t.block === block);
+    const tr = document.createElement("tr");
 
-const hits = data.filter(t => t.result === "hit");
+    tr.innerHTML = `
+      <td>${block}</td>
+      <td>${hits.length}</td>
+      <td>${omissions.length}</td>
+      <td>${commissions.length}</td>
+      <td>${mean}</td>
+    `;
 
-const omissions = data.filter(t => t.result === "omission");
-
-const commissions = data.filter(t => t.result === "commission");
-
-const rts = hits.map(t => t.reaction_time);
-
-const mean =
-rts.length
-? Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)
-: "-";
-
-const tr = document.createElement("tr");
-
-tr.innerHTML = `
-<td>${block}</td>
-<td>${hits.length}</td>
-<td>${omissions.length}</td>
-<td>${commissions.length}</td>
-<td>${mean}</td>
-`;
-
-tbody.appendChild(tr);
-
-}
-
+    tbody.appendChild(tr);
+  }
 }
 
 function calculateSD(values){
+  if(!values.length) return 0;
 
-if(!values.length) return 0;
+  const mean = values.reduce((a,b)=>a+b,0) / values.length;
 
-const mean =
-values.reduce((a,b)=>a+b,0)/values.length;
+  const variance =
+    values.reduce((sum,val) => sum + Math.pow(val - mean, 2), 0) / values.length;
 
-const variance =
-values.reduce((sum,val)=>
-sum + Math.pow(val - mean,2),0
-)/values.length;
-
-return Math.round(Math.sqrt(variance));
-
+  return Math.round(Math.sqrt(variance));
 }
 
 function fillParticipantData(){
+  const birthdate = document.getElementById("birthdate").value;
+  let age = "";
 
-const birthdate =
-document.getElementById("birthdate").value;
+  if(birthdate){
+    const birth = new Date(birthdate);
+    const today = new Date();
 
-let age = "";
+    age = today.getFullYear() - birth.getFullYear();
 
-if(birthdate){
+    const m = today.getMonth() - birth.getMonth();
 
-const birth = new Date(birthdate);
+    if(m < 0 || (m === 0 && today.getDate() < birth.getDate())){
+      age--;
+    }
+  }
 
-const today = new Date();
+  document.getElementById("report-name").textContent =
+    document.getElementById("name").value;
 
-age = today.getFullYear() - birth.getFullYear();
+  document.getElementById("report-birthdate").textContent = birthdate;
+  document.getElementById("report-age").textContent = age;
 
-const m = today.getMonth() - birth.getMonth();
+  document.getElementById("report-education").textContent =
+    document.getElementById("education").value;
 
-if(m < 0 || (m === 0 && today.getDate() < birth.getDate())){
-age--;
-}
+  document.getElementById("report-gender").textContent =
+    document.getElementById("gender").value;
 
-}
+  document.getElementById("report-examiner").textContent =
+    document.getElementById("examiner").value;
 
-document.getElementById("report-name").textContent =
-document.getElementById("name").value;
+  document.getElementById("report-date").textContent =
+    document.getElementById("assessment-date").value;
 
-document.getElementById("report-birthdate").textContent =
-birthdate;
+  document.getElementById("report-hand").textContent =
+    document.getElementById("handedness").value;
 
-document.getElementById("report-age").textContent =
-age;
+  document.getElementById("report-sleep").textContent =
+    document.getElementById("sleep").value;
 
-document.getElementById("report-education").textContent =
-document.getElementById("education").value;
-
-document.getElementById("report-gender").textContent =
-document.getElementById("gender").value;
-
-document.getElementById("report-examiner").textContent =
-document.getElementById("examiner").value;
-
-document.getElementById("report-date").textContent =
-document.getElementById("assessment-date").value;
-
-document.getElementById("report-hand").textContent =
-document.getElementById("handedness").value;
-
-document.getElementById("report-sleep").textContent =
-document.getElementById("sleep").value;
-
-document.getElementById("report-observations").textContent =
-document.getElementById("observations").value;
-
+  document.getElementById("report-observations").textContent =
+    document.getElementById("observations").value;
 }
 
 function downloadCSV(){
+  const header = [
+    "trial",
+    "block",
+    "stimulus",
+    "is_target",
+    "responded",
+    "reaction_time",
+    "valid_rt",
+    "result",
+    "visibility_losses",
+    "total_hidden_time_ms",
+    "user_agent"
+  ];
 
-const header = [
-"trial",
-"block",
-"stimulus",
-"is_target",
-"responded",
-"reaction_time",
-"result"
-];
+  const rows = trials.map(t => [
+    t.trial,
+    t.block,
+    t.stimulus,
+    t.is_target,
+    t.responded,
+    t.reaction_time,
+    t.valid_rt,
+    t.result,
+    visibilityLosses,
+    Math.round(totalHiddenTime),
+    `"${navigator.userAgent}"`
+  ]);
 
-const rows = trials.map(t => [
-t.trial,
-t.block,
-t.stimulus,
-t.is_target,
-t.responded,
-t.reaction_time,
-t.result
-]);
+  const csv = [header, ...rows]
+    .map(r => r.join(","))
+    .join("\n");
 
-const csv =
-[header,...rows]
-.map(r=>r.join(","))
-.join("\n");
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;"
+  });
 
-const blob =
-new Blob([csv],{
-type:"text/csv;charset=utf-8;"
-});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
 
-const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = "tras-a-dados.csv";
 
-const link = document.createElement("a");
-
-link.href = url;
-
-link.download = "tras-a-dados.csv";
-
-document.body.appendChild(link);
-
-link.click();
-
-document.body.removeChild(link);
-
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
-
 </script>
 
 </body>
